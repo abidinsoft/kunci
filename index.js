@@ -37,7 +37,9 @@
   <div class="error red-border" style="display: none">
     <p id="errortext">Error</p>
     <button onclick="main()">Try again</button>
-    </a>
+    <a href="https://abidinsoft.github.io/kunci"><button>Lock a link</button></a>
+    <a href="https://abidinsoft.github.io/kunci/decrypt/" id="no-redirect" target="_blank"><button>Decrypt without redirect</button></a>
+    <a href="https://abidinsoft.github.io/kunci/hidden/" id="hidden" target="_blank"><button>Create hidden bookmark</button></a>
   </div>
 </body>
 

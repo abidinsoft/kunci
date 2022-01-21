@@ -1,46 +1,102 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+function error(text) {
+  document.querySelector(".error").style.display = "inherit";
+  document.querySelector("#errortext").innerText = `Error: ${text}`;
+}
 
-<head>
-  <!-- Metadata -->
-  <meta charset="utf-8" />
-  <meta name="author" content="Jacob Strieb" />
-  <meta name="description" content="Password protect links using AES in the browser." />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+// Run when the <body> loads
+async function main() {
+  if (window.location.hash) {
+    // Fail if the b64 library or API was not loaded
+    if (!("b64" in window)) {
+      error("Base64 library not loaded.");
+      return;
+    }
+    if (!("apiVersions" in window)) {
+      error("API library not loaded.");
+      return;
+    }
 
-  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    // Try to get page data from the URL if possible
+    const hash = window.location.hash.slice(1);
+    let params;
+    try {
+      params = JSON.parse(b64.decode(hash));
+    } catch {
+      error("The link appears corrupted.");
+      return;
+    }
 
-  <title>Link Lock - Password-protect links</title>
+    // Check that all required parameters encoded in the URL are present
+    if (!("v" in params && "e" in params)) {
+      error("The link appears corrupted. The encoded URL is missing necessary parameters.");
+      return;
+    }
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="style.css" type="text/css" />
+    // Check that the version in the parameters is valid
+    if (!(params["v"] in apiVersions)) {
+      error("Unsupported API version. The link may be corrupted.");
+      return;
+    }
 
-  <!-- Scripts -->
-  <script type="text/javascript" src="b64.js"></script>
-  <script type="text/javascript" src="api.js"></script>
-  <script type="text/javascript" src="index.js"> </script>
-</head>
+    const api = apiVersions[params["v"]];
 
-<body onload="main()">
-  <!-- Explanation for those who do not have JavaScript enabled -->
-  <noscript>
-  <div class="red-border">
-    <p>If you are seeing this, it means that you have JavaScript disabled. Please enable JavaScript to access the locked link.</p>
+    // Get values for decryption
+    const encrypted = b64.base64ToBinary(params["e"]);
+    const salt = "s" in params ? b64.base64ToBinary(params["s"]) : null;
+    const iv = "i" in params ? b64.base64ToBinary(params["i"]) : null;
 
-    <p>This application is entirely programmed in JavaScript. This was done intentionally, so that all encryption and decryption happens client-side. This means the code runs as a distributed application, relying only on GitHub Pages for infrastructure. It also means that no data about locked links is ever stored on a server. The code is designed to be auditable so users can investigate what is happening behind the scenes.</p>
+    let hint, password;
+    if ("h" in params) {
+      hint = params["h"];
+      password = prompt(`Please enter the password to unlock the link.\n\nHint: ${hint}`);
+    } else {
+      password = prompt("Please enter the password to unlock the link.");
+    }
 
-    <p>If you still want to run the application, I encourage you to clone the <a href="https://github.com/jstrieb/link-lock">source code on GitHub</a>. That way you can disable JavaScript only for trusted files on your local machine.</p>
-  </div>
-  </noscript>
+    // Decrypt and redirect if possible
+    let url;
+    try {
+      url = await api.decrypt(encrypted, password, salt, iv);
+    } catch {
+      // Password is incorrect.
+      error("Password is incorrect.");
 
-  <!-- Display errors in a big red box -->
-  <div class="error red-border" style="display: none">
-    <p id="errortext">Error</p>
-    <button onclick="main()">Try again</button>
-    <a href="https://abidinsoft.github.io/kunci"><button>Lock a link</button></a>
-    <a href="https://abidinsoft.github.io/kunci/decrypt/" id="no-redirect" target="_blank"><button>Decrypt without redirect</button></a>
-    <a href="https://abidinsoft.github.io/kunci/hidden/" id="hidden" target="_blank"><button>Create hidden bookmark</button></a>
-  </div>
-</body>
+      // Set the "decrypt without redirect" URL appropriately
+      document.querySelector("#no-redirect").href =
+        `https://jstrieb.github.io/link-lock/decrypt/#${hash}`;
 
-</html>
+      // Set the "create hidden bookmark" URL appropriately
+      document.querySelector("#hidden").href =
+        `https://jstrieb.github.io/link-lock/hidden/#${hash}`;
+      return;
+    }
+
+    try {
+      // Extra check to make sure the URL is valid. Probably shouldn't fail.
+      let urlObj = new URL(url);
+
+      // Prevent XSS by making sure only HTTP URLs are used. Also allow magnet
+      // links for password-protected torrents.
+      if (!(urlObj.protocol == "http:"
+            || urlObj.protocol == "https:"
+            || urlObj.protocol == "magnet:")) {
+        error(`The link uses a non-hypertext protocol, which is not allowed. `
+            + `The URL begins with "${urlObj.protocol}" and may be malicious.`);
+        return;
+      }
+
+      // IMPORTANT NOTE: must use window.location.href instead of the (in my
+      // opinion more proper) window.location.replace. If you use replace, it
+      // causes Chrome to change the icon of a bookmarked link to update it to
+      // the unlocked destination. This is dangerous information leakage.
+      window.location.href = url;
+    } catch {
+      error("A corrupted URL was encrypted. Cannot redirect.");
+      console.log(url);
+      return;
+    }
+  } else {
+    // Otherwise redirect to the creator
+    window.location.replace("./create");
+  }
+}

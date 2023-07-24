@@ -19,13 +19,19 @@
   <script type="text/javascript" src="b64.js"></script>
   <script type="text/javascript" src="api.js"></script>
   <script type="text/javascript" src="index.js"> </script>
+
+  <!-- Tambahkan CSS berikut untuk memposisikan animasi di tengah halaman -->
   <style>
-    /* CSS untuk memposisikan animasi LottieFiles di tengah */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
     .animation-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      text-align: center;
     }
   </style>
 </head>
@@ -33,18 +39,22 @@
 <body onload="main()">
   <!-- Explanation for those who do not have JavaScript enabled -->
   <noscript>
-    <!-- ... (Bagian lain dari kode HTML tidak berubah) ... -->
+    <div class="red-border">
+      <p>If you are seeing this, it means that you have JavaScript disabled. Please enable JavaScript to access the locked link.</p>
+      <!-- ... (Bagian lain dari kode HTML tidak berubah) ... -->
+    </div>
   </noscript>
 
   <!-- Display errors in a big red box -->
   <div class="error red-border" style="display: none">
-    <!-- ... (Bagian lain dari kode HTML tidak berubah) ... -->
-  </div>
-
-  <!-- Tempatkan animasi LottieFiles di tengah halaman -->
-  <div class="animation-container">
+    <p id="errortext">Error</p>
+    <button onclick="main()">Try again</button>
     <a href="https://abidinsoft.github.io/kunci">
-      <lottie-player src="https://assets4.lottiefiles.com/packages/lf20_rmqm00ic.json" background="transparent" speed="3" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+      <button>Lock a link</button>
+      <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+      <div class="animation-container">
+        <lottie-player src="https://assets4.lottiefiles.com/packages/lf20_rmqm00ic.json" background="transparent" speed="3" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+      </div>
     </a>
   </div>
 </body>
